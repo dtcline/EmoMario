@@ -26,7 +26,7 @@ public final class SteadyStateESO {
 		for (int i = 0; i < popSize; ++i) {
 			int[] instructions = new int[initialChromoLength];
 			for (int j = 0; j < initialChromoLength; ++j) {
-				if (random.nextFloat() < 1.f)
+				if (random.nextFloat() < 0.5f)
 					instructions[j] = 1;
 				else
 					instructions[j] = 0;
@@ -67,7 +67,7 @@ public final class SteadyStateESO {
 			*/
 			
 			// print currentEvals at even intervals to give feedback
-			if (currentEvals % (numOfEvals / 10) == 0)
+			if (currentEvals % 10000 == 0)
 				System.out.println("Finished " + currentEvals + " evaluations.");
 			
 			// select parents
@@ -145,10 +145,10 @@ public final class SteadyStateESO {
 			marioAIOptions.setAgent(agent);
 			basicTask.doEpisodes(1, false, 1);
 			// TODO figure out best fitness calculation to do here!!!
-			EvaluationInfo ei = basicTask.getEvaluationInfo();
+			EvaluationInfo ei = basicTask.getEnvironment().getEvaluationInfo();
 			while (ei == null) {
 				System.out.println("EvaluationInfo null! Waiting...");
-				ei = basicTask.getEvaluationInfo();
+				ei = basicTask.getEnvironment().getEvaluationInfo();
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
@@ -157,8 +157,7 @@ public final class SteadyStateESO {
 				}
 			}
 			
-			float distancePercentage = (float)ei.distancePassedPhys;/*(basicTask.getEnvironment().getLevelScene().getMarioFloatPos()[0] / 16.f) / 
-					basicTask.getEnvironment().getLevelLength();*/
+			float distancePercentage = basicTask.getEnvironment().getLevelScene().xCam;
 			boolean completedLevel = false;
 			if (distancePercentage == 4096.f)
 				completedLevel = true;
@@ -169,7 +168,7 @@ public final class SteadyStateESO {
 			int timeLeft = ei.timeLeft;
 			agent.setStats(completedLevel, distancePercentage, mode, timeLeft);
 			int jumpCount = agent.getJumpCount();
-			agent.setFitness(distancePercentage * completedMod - jumpCount);
+			agent.setFitness(distancePercentage);
 			agent.chopInstructions();
 		}
 	}
