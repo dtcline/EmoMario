@@ -27,10 +27,17 @@
 
 package ch.idsia.scenarios;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
+
 import ch.idsia.agents.Agent;
 import ch.idsia.agents.controllers.ForwardAgent;
+import ch.idsia.agents.controllers.ForwardJumpingAgent;
 import ch.idsia.benchmark.tasks.BasicTask;
 import ch.idsia.tools.MarioAIOptions;
+import ec.InstructionAgent;
+import ec.SteadyStateESO;
 
 /**
  * Created by IntelliJ IDEA. User: Sergey Karakovskiy, sergey at idsia dot ch Date: Mar 17, 2010 Time: 8:28:00 AM
@@ -40,11 +47,45 @@ public final class Main
 {
 public static void main(String[] args)
 {
+	/*
+	final MarioAIOptions marioAIOptions = new MarioAIOptions(args);
+	marioAIOptions.setVisualization(false);
+	final BasicTask basicTask = new BasicTask(marioAIOptions);
+	basicTask.setOptionsAndReset(marioAIOptions);
+	
+	long start = System.currentTimeMillis();
+	//SteadyStateESO ssEso = new SteadyStateESO(basicTask, 100, 4096, 0.8f, 0.05f);
+	ArrayList<EsoAgent> pop = ssEso.getPop();
+	for (EsoAgent agent : pop) {
+		marioAIOptions.setAgent(agent);
+		basicTask.doEpisodes(1, false, 1);
+		agent.calculateFitness(basicTask);
+		System.out.println(agent.getFitness());
+	}
+	int[] badness = new int[4096];
+	EsoAgent a = new EsoAgent(badness);
+	marioAIOptions.setAgent(a);
+	marioAIOptions.setVisualization(true);
+	basicTask.doEpisodes(1, false, 1);
+	a.calculateFitness(basicTask);
+	System.out.println(a.getFitness());
+    long stop = System.currentTimeMillis();
+    System.out.println("Total time == " + (stop - start) / 1000.0);
+    */
+    
+/*
 //        final String argsString = "-vis on";
     final MarioAIOptions marioAIOptions = new MarioAIOptions(args);
 //        final Environment environment = new MarioEnvironment();
-        final Agent agent = new ForwardAgent();
-        marioAIOptions.setAgent(agent);
+//        final Agent agent = new ForwardAgent();
+    int[] instructions = new int[4096];
+    Random random = new Random();
+    for (int i = 0; i < instructions.length; ++i)
+    	instructions[i] = random.nextInt(2);
+    System.out.println(Arrays.toString(instructions));
+    final Agent agent = new InstructionAgent(instructions);
+    marioAIOptions.setAgent(agent);
+    marioAIOptions.setVisualization(false);
 //        final Agent agent = marioAIOptions.getAgent();
 //        final Agent a = AgentsPool.loadAgent("ch.idsia.controllers.agents.controllers.ForwardJumpingAgent");
     final BasicTask basicTask = new BasicTask(marioAIOptions);
@@ -62,7 +103,9 @@ public static void main(String[] args)
 //            } while (basicTask.getEnvironment().getEvaluationInfo().marioStatus != Environment.MARIO_STATUS_WIN);
 //        }
 //
+    
     System.exit(0);
+*/
 }
 
 }

@@ -47,7 +47,7 @@ import java.util.Vector;
 
 public class BasicTask implements Task
 {
-protected final static Environment environment = MarioEnvironment.getInstance();
+protected final static MarioEnvironment environment = MarioEnvironment.getInstance();
 private Agent agent;
 protected MarioAIOptions options;
 private long COMPUTATION_TIME_BOUND = 42; // stands for prescribed  FPS 24.
@@ -96,7 +96,7 @@ public boolean runSingleEpisode(final int repetitionsOfSingleEpisode)
     return true;
 }
 
-public Environment getEnvironment()
+public MarioEnvironment getEnvironment()
 {
     return environment;
 }
@@ -137,7 +137,8 @@ public void doEpisodes(int amount, boolean verbose, final int repetitionsOfSingl
         }
     }
 
-    System.out.println(statistics.get(3).toString());
+    // XXX Removed this to eliminate all built-in printing
+    //System.out.println(statistics.get(3).toString());
 }
 
 public boolean isFinished()

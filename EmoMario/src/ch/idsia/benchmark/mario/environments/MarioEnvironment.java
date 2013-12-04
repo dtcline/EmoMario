@@ -412,7 +412,6 @@ private String enemyToStr(int el)
     return s + " ";
 }
 
-
 public float[] getEnemiesFloatPos()
 {
     return levelScene.getEnemiesFloatPos();
@@ -637,6 +636,10 @@ public int getTimeLeft()
 public Level getLevel()
 {
     return levelScene.level;
+}
+
+public LevelScene getLevelScene() {
+	return levelScene;
 }
 
 private void computeEvaluationInfo()

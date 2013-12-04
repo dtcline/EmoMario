@@ -35,7 +35,7 @@ package ch.idsia.benchmark.tasks;
 
 public class SystemOfValues
 {
-public int distance = 1;
+public int distance = 10;
 public int win = 1024;
 public int mode = 32;
 public int coins = 16;
@@ -45,9 +45,9 @@ public int killedByFire = 4;
 public int killedByShell = 17;
 public int killedByStomp = 12;
 public int mushroom = 58;
-public int timeLeft = 8;
-public int hiddenBlock = 24;
-public int greenMushroom = 58;
+public int timeLeft = 100;//8;
+public int hiddenBlock = 0;//24;
+public int greenMushroom = 0;//58;
 // For Intermediate rewards only
 public int stomp = 10;
 }
