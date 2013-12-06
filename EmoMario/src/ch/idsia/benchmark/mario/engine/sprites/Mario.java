@@ -756,7 +756,6 @@ public void die(final String reasonOfDeath)
     status = Mario.STATUS_DEAD;
     levelScene.addMemoMessage("Reason of death: " + reasonOfDeath);
     levelScene.appendBonusPoints(-MarioEnvironment.IntermediateRewardsSystemOfValues.win / 2);
-    keys = new boolean[Environment.numberOfKeys];
 }
 
 public void devourFlower()

@@ -323,7 +323,6 @@ public void tick()
     sprites.removeAll(spritesToRemove);
     spritesToAdd.clear();
     spritesToRemove.clear();
-    
 }
 
 public void addSprite(Sprite sprite)

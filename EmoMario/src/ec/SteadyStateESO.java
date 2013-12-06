@@ -1,5 +1,6 @@
 package ec;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -10,6 +11,7 @@ import ch.idsia.tools.MarioAIOptions;
 
 public final class SteadyStateESO {
 
+	PrintWriter pw;
 	ArrayList<SingleFitnessAgent> pop;
 	float xoverProb;
 	float mutProb;
@@ -18,15 +20,17 @@ public final class SteadyStateESO {
 	int difficulty;
 	int unimprovementTimeout;
 	int unimprovementCount = 0;
+	int rngSeed;
 	
-	public SteadyStateESO(int initialChromoLength, int popSize, float xoverProb, float mutProb, 
-			int selectTourneySize, int difficulty, int unimprovementTimeout) {
+	public SteadyStateESO(PrintWriter pw, int initialChromoLength, float jumpDensity, int popSize, float xoverProb, float mutProb, 
+			int selectTourneySize, int difficulty, int unimprovementTimeout, int rngSeed) {
+		this.pw = pw;
 		pop = new ArrayList<SingleFitnessAgent>();
 		Random random = new Random();
 		for (int i = 0; i < popSize; ++i) {
 			int[] instructions = new int[initialChromoLength];
 			for (int j = 0; j < initialChromoLength; ++j) {
-				if (random.nextFloat() < 0.5f)
+				if (random.nextFloat() < jumpDensity)
 					instructions[j] = 1;
 				else
 					instructions[j] = 0;
@@ -34,18 +38,19 @@ public final class SteadyStateESO {
 			pop.add(new SingleFitnessAgent(instructions));
 		}
 		
+		this.xoverProb = xoverProb;
+		this.mutProb = mutProb;
+		this.selectTourneySize = selectTourneySize;
+		this.difficulty = difficulty;
+		this.unimprovementTimeout = unimprovementTimeout;
+		this.rngSeed = rngSeed;
+		
 		// evaluate initial pop
 		calculateFitnesses(pop);
 		bestAgent = pop.get(0);
 		for (int i = 1; i < pop.size(); ++i)
 			if (pop.get(i).getFitness() > bestAgent.getFitness())
 				bestAgent = pop.get(i);
-		
-		this.xoverProb = xoverProb;
-		this.mutProb = mutProb;
-		this.selectTourneySize = selectTourneySize;
-		this.difficulty = difficulty;
-		this.unimprovementTimeout = unimprovementTimeout;
 	}
 	
 	public void run(int numOfEvals) {
@@ -54,7 +59,11 @@ public final class SteadyStateESO {
 		while (currentEvals < numOfEvals) {
 			// check if we should stop due to unimprovement
 			if (unimprovementCount >= unimprovementTimeout) {
-				System.out.println("Stopping due to lack of improvent in " + currentEvals + " evaluations.");
+				String announcement = "Stopping due to lack of improvent in " + unimprovementTimeout + " evaluations.\n"
+										+ "Current number of evaluations: " + currentEvals;
+				pw.println(announcement);
+				pw.flush();
+				System.out.println(announcement);
 				break;
 			}
 			
@@ -120,17 +129,42 @@ public final class SteadyStateESO {
 		return result / pop.size();
 	}
 	
+	public String popAsString() {
+		StringBuilder sb = new StringBuilder();
+		
+		for (SingleFitnessAgent agent : pop)
+			sb.append(agent).append("\n");
+		
+		sb.append("\n");
+		
+		return sb.toString();
+	}
+	
 	public void printPop() {
 		printAgents(pop);
 	}
 	
-	public void runVisualization(SingleFitnessAgent agent) {
+	public void runWithVisualization(SingleFitnessAgent agent) {
 		final MarioAIOptions marioAIOptions = new MarioAIOptions(new String[0]);
 		marioAIOptions.setVisualization(true);
 		marioAIOptions.setLevelDifficulty(difficulty);
+		marioAIOptions.setLevelRandSeed(rngSeed);
 		final BasicTask basicTask = new BasicTask(marioAIOptions);
 		basicTask.setOptionsAndReset(marioAIOptions);
 		marioAIOptions.setAgent(agent);
+		
+		basicTask.doEpisodes(1, false, 1);
+	}
+	
+	public void runWithoutVisualization(SingleFitnessAgent agent) {
+		final MarioAIOptions marioAIOptions = new MarioAIOptions(new String[0]);
+		marioAIOptions.setVisualization(false);
+		marioAIOptions.setLevelDifficulty(difficulty);
+		marioAIOptions.setLevelRandSeed(rngSeed);
+		final BasicTask basicTask = new BasicTask(marioAIOptions);
+		basicTask.setOptionsAndReset(marioAIOptions);
+		marioAIOptions.setAgent(agent);
+		
 		basicTask.doEpisodes(1, false, 1);
 	}
 	
@@ -138,6 +172,7 @@ public final class SteadyStateESO {
 		final MarioAIOptions marioAIOptions = new MarioAIOptions(new String[0]);
 		marioAIOptions.setVisualization(false);
 		marioAIOptions.setLevelDifficulty(difficulty);
+		marioAIOptions.setLevelRandSeed(rngSeed);
 		final BasicTask basicTask = new BasicTask(marioAIOptions);
 		basicTask.setOptionsAndReset(marioAIOptions);
 		
@@ -157,7 +192,7 @@ public final class SteadyStateESO {
 				}
 			}
 			
-			float distancePercentage = basicTask.getEnvironment().getLevelScene().xCam;
+			float distancePercentage = agent.getX();
 			boolean completedLevel = false;
 			if (distancePercentage == 4096.f)
 				completedLevel = true;
@@ -168,7 +203,7 @@ public final class SteadyStateESO {
 			int timeLeft = ei.timeLeft;
 			agent.setStats(completedLevel, distancePercentage, mode, timeLeft);
 			int jumpCount = agent.getJumpCount();
-			agent.setFitness(distancePercentage);
+			agent.setFitness(distancePercentage - jumpCount);
 			agent.chopInstructions();
 		}
 	}

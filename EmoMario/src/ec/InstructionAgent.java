@@ -19,6 +19,7 @@ public class InstructionAgent extends BasicMarioAIAgent implements Agent {
 	private float distancePercentage = -1.f;
 	private int mode = -1;
 	private int timeLeft = -1;
+	private float x;
 	
 	public InstructionAgent(int[] instructions) {
 		super("InstructionAgent");
@@ -64,6 +65,12 @@ public class InstructionAgent extends BasicMarioAIAgent implements Agent {
 	}
 	
 	@Override
+	public void integrateObservation(Environment environment) {
+		super.integrateObservation(environment);
+		x = environment.getMarioFloatPos()[0];
+	}
+	
+	@Override
 	public void reset() {
 		currentIndex = 0;
 		jumpCount = 0;
@@ -71,6 +78,10 @@ public class InstructionAgent extends BasicMarioAIAgent implements Agent {
 		action = new boolean[Environment.numberOfKeys];
 		action[Mario.KEY_RIGHT] = true;
 		action[Mario.KEY_SPEED] = true;
+	}
+	
+	public float getX() {
+		return x;
 	}
 	
 	public int getJumpCount() {
