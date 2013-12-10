@@ -9,22 +9,24 @@ import ch.idsia.benchmark.tasks.BasicTask;
 import ch.idsia.tools.EvaluationInfo;
 import ch.idsia.tools.MarioAIOptions;
 
-public final class SteadyStateESO {
+public final class EMOSteadyState {
 
 	PrintWriter pw;
 	ArrayList<SingleFitnessAgent> pop;
 	float xoverProb;
 	float mutProb;
 	int selectTourneySize;
+	ArrayList<SingleFitnessAgent> bestList;
 	SingleFitnessAgent bestAgent;
 	int difficulty;
 	int unimprovementTimeout;
 	int unimprovementCount = 0;
 	int rngSeed;
 	
-	public SteadyStateESO(PrintWriter pw, int initialChromoLength, float jumpDensity, int popSize, float xoverProb, float mutProb, 
+	public EMOSteadyState(PrintWriter pw, int initialChromoLength, float jumpDensity, int popSize, float xoverProb, float mutProb, 
 			int selectTourneySize, int difficulty, int unimprovementTimeout, int rngSeed) {
 		this.pw = pw;
+		bestList = new ArrayList<SingleFitnessAgent>();
 		pop = new ArrayList<SingleFitnessAgent>();
 		Random random = new Random();
 		for (int i = 0; i < popSize; ++i) {
@@ -47,10 +49,31 @@ public final class SteadyStateESO {
 		
 		// evaluate initial pop
 		calculateFitnesses(pop);
+		
 		bestAgent = pop.get(0);
-		for (int i = 1; i < pop.size(); ++i)
-			if (pop.get(i).getFitness() > bestAgent.getFitness())
-				bestAgent = pop.get(i);
+		for (SingleFitnessAgent agent : pop) {
+			if (bestAgent.getX() < 4096.0) {
+				if (agent.getX() > bestAgent.getX())
+					bestAgent = agent;
+			}
+			else if (agent.getX() >= 4096.0 && agent.getTimeLeft() > bestAgent.getTimeLeft()) {
+				bestAgent = agent;
+			}
+		}
+		
+		
+		// find Pareto front
+		ArrayList<SingleFitnessAgent> rest = new ArrayList<SingleFitnessAgent>(pop);
+		SingleFitnessAgent farthest = findFarthestDistanceAgent(rest);
+		bestList.add(farthest);
+		while (rest.size() > 0) {
+			SingleFitnessAgent nextFarthest = findFarthestDistanceAgent(rest);
+			if (nextFarthest.getTimeLeft() > farthest.getTimeLeft()) {
+				bestList.add(nextFarthest);
+				farthest = nextFarthest;
+			}
+		}
+		
 	}
 	
 	public void run(int numOfEvals) {
@@ -99,24 +122,63 @@ public final class SteadyStateESO {
 			
 			
 			// update bestAgent
-			for (SingleFitnessAgent child : children)
-				if (child.getFitness() > bestAgent.getFitness()) {
+			/*
+			 for (SingleFitnessAgent agent : pop) {
+				if (bestAgent.getX() < 4096.0) {
+					if (agent.getX() > bestAgent.getX())
+						bestAgent = agent;
+				}
+				else if (agent.getX() >= 4096.0 && agent.getTimeLeft() > bestAgent.getTimeLeft()) {
+					bestAgent = agent;
+				}
+			}
+			 */
+			for (SingleFitnessAgent child : children) {
+				if (bestAgent.getX() < 4096.0) {
+					if (child.getX() > bestAgent.getX()) {
+						bestAgent = child;
+						unimprovementCount = 0;
+					}
+					else
+						++ unimprovementCount;
+				}
+				else if (child.getX() >= 4096.0 && child.getTimeLeft() > bestAgent.getTimeLeft()) {
 					bestAgent = child;
-					// found a new best so reset unimprovementCount
 					unimprovementCount = 0;
 				}
-				else // this agent was not an improvement of the best...
+				else
 					++unimprovementCount;
+			}
+			
 			
 			// select replacements
 			for (SingleFitnessAgent child : children) {
 				tourneyReplacement(child);
 			}
+			
+			// refind non-dominated solutions
+			bestList = new ArrayList<SingleFitnessAgent>();
+			ArrayList<SingleFitnessAgent> rest = new ArrayList<SingleFitnessAgent>(pop);
+			SingleFitnessAgent farthest = findFarthestDistanceAgent(rest);
+			bestList.add(farthest);
+			while (rest.size() > 0) {
+				SingleFitnessAgent nextFarthest = findFarthestDistanceAgent(rest);
+				if (nextFarthest.getTimeLeft() < farthest.getTimeLeft()) {
+					bestList.add(nextFarthest);
+					farthest = nextFarthest;
+				}
+			}
 		}
 	}
 	
-	public SingleFitnessAgent getBest() {
-		return bestAgent;
+	public SingleFitnessAgent findFarthestDistanceAgent(ArrayList<SingleFitnessAgent> agentList) {
+		int farthest = 0;
+		for (int i = 1; i < agentList.size(); ++i)
+			if (agentList.get(i).getX() > agentList.get(farthest).getX())
+				farthest = i;
+		
+		SingleFitnessAgent farthestDistanceAgent = agentList.remove(farthest);
+		return farthestDistanceAgent;
 	}
 	
 	public double getAverageFitness() {
@@ -203,8 +265,7 @@ public final class SteadyStateESO {
 			int timeLeft = ei.timeLeft;
 			agent.setStats(completedLevel, distancePercentage, mode, timeLeft);
 			int jumpCount = agent.getJumpCount();
-			double fitness = distancePercentage + timeLeft;
-			agent.setFitness(fitness);
+			agent.setFitness(distancePercentage - jumpCount);
 			agent.chopInstructions();
 		}
 	}
@@ -216,11 +277,49 @@ public final class SteadyStateESO {
 		for (int i = 0; i < possibles.length; ++i)
 			possibles[i] = pop.get(random.nextInt(pop.size()));
 		
+		/*
 		SingleFitnessAgent bestAgent = possibles[0];
 		for (int i = 1; i < possibles.length; ++i)
 			if (possibles[i].getFitness() > bestAgent.getFitness())
 				bestAgent = possibles[i];
+		*/
 		
+		/* old implementation
+		SingleFitnessAgent farthestDistanceAgent = possibles[0];
+		for (int i = 1; i < possibles.length; ++i)
+			if (possibles[i].getX() > farthestDistanceAgent.getX())
+				farthestDistanceAgent = possibles[i];
+		
+		SingleFitnessAgent leastJumpsAgent = possibles[0];
+		for (int i = 1; i < possibles.length; ++i)
+			if (possibles[i].getJumpCount() < leastJumpsAgent.getJumpCount())
+				leastJumpsAgent = possibles[i];
+		
+		// return non-dominated agent
+		if (farthestDistanceAgent.getId() == leastJumpsAgent.getId())
+			return farthestDistanceAgent;
+		
+		SingleFitnessAgent bestAgent = null;
+		if ((farthestDistanceAgent.getX() / 4096.f) <= (1 - (leastJumpsAgent.getJumpCount() / leastJumpsAgent.getInstructionsLength())))
+			if (leastJumpsAgent.getJumpCount() == 0)
+				bestAgent = farthestDistanceAgent;
+			else
+				bestAgent = leastJumpsAgent;
+		else
+			bestAgent = farthestDistanceAgent;
+		*/
+		
+		// get bestAgent based on farthest distance
+		SingleFitnessAgent bestAgent = possibles[0];
+		for (int i = 1; i < possibles.length; ++i) 
+			if (possibles[i].getX() > bestAgent.getX())
+				bestAgent = possibles[i];
+		
+		if (bestAgent.getX() >= 4096.0) 
+			for (SingleFitnessAgent otherAgent : possibles)
+				if (otherAgent.getX() >= 4096.0 && otherAgent.getJumpCount() < bestAgent.getJumpCount())
+					bestAgent = otherAgent;
+			
 		return bestAgent;
 	}
 	
@@ -279,12 +378,44 @@ public final class SteadyStateESO {
 		for (int i = 0; i < possibles.length; ++i)
 			possibles[i] = random.nextInt(pop.size());
 		
-		int bestAgent = possibles[0];
+		/* old implementation
+		int leastDistanceAgent = possibles[0];
 		for (int i = 1; i < possibles.length; ++i)
-			if (pop.get(possibles[i]).getFitness() < pop.get(bestAgent).getFitness())
-				bestAgent = possibles[i];
+			if (pop.get(possibles[i]).getX() < pop.get(leastDistanceAgent).getX())
+				leastDistanceAgent = possibles[i];
 		
+		int mostJumpsAgent = possibles[0];
+		for (int i = 1; i < possibles.length; ++i)
+			if (pop.get(possibles[i]).getJumpCount() > pop.get(possibles[i]).getJumpCount())
+				mostJumpsAgent = possibles[i];
+		
+		if (pop.get(leastDistanceAgent).getId() == pop.get(mostJumpsAgent).getId()) {
+			pop.remove(leastDistanceAgent);
+			pop.add(agent);
+			return;
+		}
+		
+		int bestAgent = -1;
+		if ((pop.get(leastDistanceAgent).getX() / 4096.f) >= (1 - (pop.get(mostJumpsAgent).getJumpCount() / pop.get(mostJumpsAgent).getInstructionsLength())))
+			bestAgent = mostJumpsAgent;
+		else
+			bestAgent = leastDistanceAgent;
+			
 		pop.remove(bestAgent);
+		pop.add(agent);
+		*/
+		
+		int worstAgentIndex = possibles[0];
+		for (int i = 1; i < possibles.length; ++i)
+			if (pop.get(possibles[i]).getX() < pop.get(worstAgentIndex).getX())
+				worstAgentIndex = possibles[i];
+		
+		for (int i = 0; i < possibles.length; ++i)
+			if ((pop.get(possibles[i]).getX() <= pop.get(worstAgentIndex).getX()) &&
+					(pop.get(possibles[i]).getTimeLeft() < pop.get(worstAgentIndex).getTimeLeft()))
+				worstAgentIndex = possibles[i];
+		
+		pop.remove(worstAgentIndex);
 		pop.add(agent);
 	}
 

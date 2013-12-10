@@ -80,6 +80,10 @@ public class InstructionAgent extends BasicMarioAIAgent implements Agent {
 		action[Mario.KEY_SPEED] = true;
 	}
 	
+	public int getId() {
+		return id;
+	}
+	
 	public float getX() {
 		return x;
 	}
@@ -105,6 +109,10 @@ public class InstructionAgent extends BasicMarioAIAgent implements Agent {
 		this.distancePercentage = distance;
 		this.mode = mode;
 		this.timeLeft = timeLeft;
+	}
+	
+	public int getTimeLeft() {
+		return timeLeft;
 	}
 	
 	public boolean completedLevel() {
